@@ -37,18 +37,30 @@ file node[:statsd][:log_file] do
   mode "0644"
 end
 
-template "/etc/init/statsd.conf" do
-  source "statsd.conf.erb"
-  owner "root"
-  mode "0644"
-  variables(
-    args: args
-  )
-  notifies :restart, "service[statsd]"
+# on rhel 5 setup init script
+if node[:platform_family] == "rhel" && node[:platform_version].to_f < 6 
+  template "/etc/init.d/statsd" do
+    source "statsd.init.erb"
+    owner "root"
+    mode "0755"
+    variables(args: args)
+    notifies :restart, "service[statsd]"
+  end
+else
+  service_provider  = Chef::Provider::Service::Upstart
+  template "/etc/init/statsd.conf" do
+    source "statsd.conf.erb"
+    owner "root"
+    mode "0644"
+    variables(
+      args: args
+    )
+    notifies :restart, "service[statsd]"
+  end
 end
 
 service "statsd" do
-  provider Chef::Provider::Service::Upstart
+  provider service_provider if service_provider
   action [:enable, :start]
   supports status: true, restart: true, reload: false, start: true, stop: true
 end

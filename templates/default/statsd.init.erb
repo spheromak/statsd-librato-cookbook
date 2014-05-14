@@ -1,0 +1,75 @@
+#!/bin/bash
+#
+# statsd        This shell script takes care of starting and stopping
+#               statsd
+#
+# pidfile: /var/run/statsd.pid
+# processname: statsd
+#
+### BEGIN INIT INFO
+# Provides: statsd
+# Default-Start: 3 4 5
+# Default-Stop: 0 1 2 6
+# Short-Description: stats collection daemon
+# Description:  Statsd daemon
+### END INIT INFO
+
+# Source function library.
+. /etc/init.d/functions
+
+prog="statsd"
+HOME=/tmp
+LIBRATO_USER=<%= node[:statsd][:librato_user] %>
+LIBRATO_TOKEN=<%= node[:statsd][:librato_token] %>
+LIBRATO_SOURCE=<%= node[:statsd][:librato_source] %>
+PIDFILE="/var/run/statsd.pid"
+
+if [ -r /etc/default/$prog ]; then
+  . /etc/default/$prog
+fi
+
+start() {
+        echo -n "Starting statsd: "
+        if [ -f $PIDFILE ]; then
+                PID=`cat $PIDFILE`
+                echo statsd already running: $PID
+                exit 1;
+        else
+        daemon --pidfile $PIDFILE --user <%= node[:statsd][:user] %> nohup /usr/local/bin/statsd <%= @args.map {|k,v| "-#{k}=#{v}" }.join(" ") %>  -user=$LIBRATO_USER -source=$LIBRATO_SOURCE -token=$LIBRATO_TOKEN >><%= node[:statsd][:log_file] %> 2>&1 &
+                RETVAL=$?
+                echo
+                [ $RETVAL -eq 0 ] && touch /var/lock/subsys/statsd
+                return $RETVAL
+        fi
+
+}
+
+stop() {
+        echo -n "Shutting down statsd: "
+        echo
+        killproc statsd
+        echo
+        rm -f /var/lock/subsys/statsd
+        return 0
+}
+
+case "$1" in
+    start)
+        start
+        ;;
+    stop)
+        stop
+        ;;
+    status)
+        status statsd
+        ;;
+    restart)
+        stop
+        start
+        ;;
+    *)
+        echo "Usage:  {start|stop|status|restart}"
+        exit 1
+        ;;
+esac
+exit $?
