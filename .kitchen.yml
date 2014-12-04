@@ -5,6 +5,8 @@ driver:
   socket: <%= ENV['DOCKER_HOST'] %>
   privileged: true
   run_command: /sbin/init
+  provision_command:
+    - yum install -y tar 
 
 provisioner:
   name: chef_zero
