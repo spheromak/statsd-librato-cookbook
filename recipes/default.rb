@@ -37,14 +37,29 @@ file node[:statsd][:log_file] do
   mode "0644"
 end
 
+execute 'systemctl-daemon-reload' do
+  command '/bin/systemctl --system daemon-reload'
+  action :nothing
+end
+
 # on rhel 5 setup init script
-if node[:platform_family] == "rhel" && node[:platform_version].to_f < 6 
+if node[:platform_family] == "rhel" 
   template "/etc/init.d/statsd" do
     source "statsd.init.erb"
     owner "root"
     mode "0755"
     variables(args: args)
     notifies :restart, "service[statsd]"
+    only_if { node[:platform_version].to_i <= 6 } 
+  end
+
+  template "/etc/systemd/system/statsd.service" do
+    owner "root"
+    mode "0755"
+    variables(args: args)
+    notifies :restart, "service[statsd]"
+    notifies :run, 'execute[systemctl-daemon-reload]', :immediately
+    only_if  { node[:platform_version].to_i >= 7 } 
   end
 else
   service_provider  = Chef::Provider::Service::Upstart
@@ -60,7 +75,6 @@ else
 end
 
 service "statsd" do
-  provider service_provider if service_provider
   action [:enable, :start]
-  supports status: true, restart: true, reload: false, start: true, stop: true
+  provider service_provider if service_provider
 end
