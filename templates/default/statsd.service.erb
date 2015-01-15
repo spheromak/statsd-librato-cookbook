@@ -3,7 +3,7 @@ Description=Statsd Librato
 
 [Service]
 User=<%= node[:statsd][:user] %>
-Environment="LIBRATO_USER=<%= node[:statsd][:librato_user] %>" LIBRATO_TOKEN="<%= node[:statsd][:librato_token] %>" LIBRATO_SOURCE="<%= node[:statsd][:librato_source] %>"
+Environment=LIBRATO_USER=<%= node[:statsd][:librato_user] %>" LIBRATO_TOKEN="<%= node[:statsd][:librato_token] %>" LIBRATO_SOURCE="<%= node[:statsd][:librato_source] %>"
 ExecStart=/usr/local/bin/statsd <%= @args.map {|k,v| "-#{k}=#{v}" }.join(" ") %>
 Restart=on-abort
 
